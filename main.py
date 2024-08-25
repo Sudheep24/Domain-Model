@@ -1,36 +1,32 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
+from flask import Flask, request, jsonify
 import numpy as np
 import pandas as pd
-import joblib
 from keras.models import load_model
+import joblib
 
-app = FastAPI()
+app = Flask(__name__)
 
-# Load models and scaler
+# Load models
 nn_model = load_model('model.h5')
 gbm_model = joblib.load('gbm_model.pkl')
 scaler = joblib.load('scaler.pkl')
 label_encoder = joblib.load('label_encoder.pkl')
 
-class UserData(BaseModel):
-    current_skills: int
-    aptitude_score: int
-    math_marks: int
-    science_marks: int
-    interests_goals: int
-
-@app.post("/predict/")
-def predict(user_data: UserData):
-    data = pd.DataFrame([user_data.dict()])
-    data_scaled = scaler.transform(data)
+@app.route('/predict', methods=['POST'])
+def predict():
+    data = request.json
+    user_data = [data['current_skills'], data['aptitude_score'], data['math_marks'], data['science_marks'], data['interests_goals']]
+    user_data_df = pd.DataFrame([user_data], columns=['current_skills', 'aptitude_score', 'math_marks', 'science_marks', 'interests_goals'])
+    user_data_scaled = scaler.transform(user_data_df)
     
-    nn_predictions = nn_model.predict(data_scaled)
+    nn_predictions = nn_model.predict(user_data_scaled)
     nn_prediction_class = np.argmax(nn_predictions, axis=1)
     
     gbm_prediction = gbm_model.predict(nn_prediction_class.reshape(-1, 1))
     gbm_domain_index = gbm_prediction[0]
-    
     gbm_domain = label_encoder.inverse_transform([gbm_domain_index])[0]
     
-    return {"recommended_domain": gbm_domain}
+    return jsonify({'recommended_domain': gbm_domain})
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8080)
