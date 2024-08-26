@@ -1,51 +1,54 @@
 from flask import Flask, request, jsonify
-import numpy as np
-import pandas as pd
-import tensorflow as tf
-from keras.models import load_model
 import joblib
-from sklearn.preprocessing import StandardScaler, LabelEncoder
-from sklearn.ensemble import GradientBoostingClassifier
+import numpy as np
+import tensorflow as tf
+from typing import List
 
+# Create Flask app
 app = Flask(__name__)
 
-# Load models and other objects
+# Load the trained model and components
 def load_models():
-    nn_model = load_model('model.h5')
-    gbm_model = joblib.load('gbm_model.pkl')
-    scaler = joblib.load('scaler.pkl')
+    model = tf.keras.models.load_model('model.h5')
     label_encoder = joblib.load('label_encoder.pkl')
-    return nn_model, gbm_model, scaler, label_encoder
+    mlb = joblib.load('mlb.pkl')
+    return model, label_encoder, mlb
 
-nn_model, gbm_model, scaler, label_encoder = load_models()
+model, label_encoder, mlb = load_models()
 
-def predict_recommendation(defaultValues):
-    user_data = {
-        'current_skills': np.mean([int(skill) for skill in defaultValues['currentSkills']]),
-        'aptitude_score': int(defaultValues['aptitudeScore']),
-        'math_marks': int(defaultValues['mathMarks']),
-        'science_marks': int(defaultValues['scienceMarks']),
-        'interests_goals': int(defaultValues['interestsGoals'])
-    }
-    
-    user_data_df = pd.DataFrame([user_data])
-    user_data_scaled = scaler.transform(user_data_df)
-    
-    nn_predictions = nn_model.predict(user_data_scaled)
-    nn_prediction_class = np.argmax(nn_predictions, axis=1)
-    
-    gbm_prediction = gbm_model.predict(nn_prediction_class.reshape(-1, 1))
-    gbm_domain_index = gbm_prediction[0]
-    gbm_domain = label_encoder.inverse_transform([gbm_domain_index])[0]
-    
-    return gbm_domain
-
+# Define the prediction endpoint
 @app.route('/predict', methods=['POST'])
-def predict():
-    if request.method == 'POST':
-        input_data = request.json
-        recommended_domain = predict_recommendation(input_data)
-        return jsonify({'recommended_domain': recommended_domain})
+def predict_recommendation():
+    # Get the request data
+    data = request.json
+    user_skills = data.get('currentSkills', [])
+    aptitude_score = data.get('aptitudeScore', 0)
+    math_marks = data.get('mathMarks', 0)
+    science_marks = data.get('scienceMarks', 0)
+    interests_goals = data.get('interestsGoals', 0)
 
-if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000)
+    # Validate input data
+    if not isinstance(user_skills, list) or not isinstance(aptitude_score, int) or not isinstance(math_marks, int) or not isinstance(science_marks, int) or not isinstance(interests_goals, int):
+        return jsonify({'error': 'Invalid input'}), 400
+
+    # Preprocess user input
+    skills_binarized = mlb.transform([user_skills])
+    user_input_array = np.hstack([
+        skills_binarized,
+        np.array([[aptitude_score, math_marks, science_marks, interests_goals]])
+    ])
+
+    # Ensure the input shape matches the model's expected input shape
+    if user_input_array.shape[1] != model.input_shape[1]:
+        return jsonify({'error': 'Input shape mismatch'}), 400
+
+    # Make a prediction
+    nn_predictions = model.predict(user_input_array)
+    predicted_domain_idx = np.argmax(nn_predictions, axis=1)
+    predicted_domain = label_encoder.inverse_transform(predicted_domain_idx)
+
+    return jsonify({"recommended_domain": predicted_domain[0]})
+
+# Run the Flask app
+if __name__ == '__main__':
+    app.run(debug=True)

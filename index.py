@@ -1,152 +1,190 @@
-import numpy as np
 import pandas as pd
-import tensorflow as tf
-import joblib
-from sklearn.preprocessing import StandardScaler, LabelEncoder
-from sklearn.ensemble import GradientBoostingClassifier
-from keras.models import Sequential, load_model
+import numpy as np
+from sklearn.preprocessing import LabelEncoder, MultiLabelBinarizer
+from sklearn.model_selection import train_test_split
+from keras.models import Sequential
 from keras.layers import Dense, Dropout
 from keras.optimizers import Adam
-from sklearn.model_selection import train_test_split
+import joblib
+import tensorflow as tf
 
-# Set seeds for reproducibility
-np.random.seed(42)
-tf.random.set_seed(42)
+# Mapping of domains to skill IDs
+domain_to_skills = {
+    "Full Stack Software Development": [1, 2, 3, 4, 6, 7, 11, 14, 16],
+    "Data Science": [19, 20, 21, 22, 23, 24, 25, 27, 28],
+    "Machine Learning Engineering": [32, 35, 36, 37, 38, 39, 40, 42, 43],
+    "Cybersecurity": [45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56],
+    "Software Engineering": [57, 58, 59, 60, 62, 63, 65, 68, 69],
+    "Cloud Engineering": [70, 71, 72, 73, 75, 77, 79, 82, 84],
+    "Web Development": [85, 86, 87, 88, 89, 91, 92, 94, 96],
+    "DevOps": [98, 99, 101, 102, 103, 105, 106, 107, 108],
+    "Game Development": [110, 111, 112, 113, 114, 116, 118],
+    "IT Support": [120, 121, 123, 126, 128, 130, 131]
+}
 
-# Load and Prepare Data
-def load_and_prepare_data():
-    df = pd.DataFrame({
-        'current_skills': [4, 5, 3, 2, 4, 5, 3, 4, 2, 5],
-        'aptitude_score': [85, 90, 75, 80, 88, 92, 78, 80, 70, 88],
-        'math_marks': [90, 92, 85, 78, 88, 91, 80, 82, 72, 89],
-        'science_marks': [92, 90, 80, 75, 85, 94, 78, 81, 70, 90],
-        'interests_goals': [3, 2, 4, 1, 5, 4, 3, 2, 4, 5],
+# Mapping of skill IDs to skill names
+skill_id_to_name = {
+    "1": "HTML", "2": "CSS", "3": "JavaScript", "4": "React.js", "5": "Angular.js", "6": "Node.js", "7": "Express.js",
+    "8": "Python", "9": "Ruby on Rails", "10": "Java", "11": "SQL", "12": "NoSQL", "13": "MongoDB", "14": "Git",
+    "15": "GitHub", "16": "Docker", "17": "Kubernetes", "18": "CI/CD pipelines", "19": "R", "20": "Pandas",
+    "21": "NumPy", "22": "Scikit-Learn", "23": "TensorFlow", "24": "Keras", "25": "Matplotlib", "26": "Seaborn",
+    "27": "Tableau", "28": "Hadoop", "29": "Spark", "30": "PyTorch", "31": "Flask", "32": "Regression",
+    "33": "Classification", "34": "Clustering", "35": "Firewalls", "36": "VPNs", "37": "IDS/IPS",
+    "38": "Encryption algorithms", "39": "PKI", "40": "Penetration testing", "41": "Risk analysis",
+    "42": "Forensics", "43": "Log analysis", "44": "Wireshark", "45": "Metasploit", "46": "Nessus",
+    "47": "C++", "48": "Agile", "49": "Scrum", "50": "MVC", "51": "Singleton", "52": "Factory",
+    "53": "Unit Testing", "54": "Integration Testing", "55": "Selenium", "56": "AWS", "57": "Azure",
+    "58": "Google Cloud", "59": "EC2", "60": "S3", "61": "Lambda", "62": "Terraform", "63": "CloudFormation",
+    "64": "VPC", "65": "Load Balancers", "66": "DNS", "67": "IAM", "68": "Security Groups", "69": "Encryption",
+    "70": "Vue.js", "71": "Django", "72": "GraphQL", "73": "Jenkins", "74": "Ansible", "75": "Puppet",
+    "76": "Nagios", "77": "Prometheus", "78": "Grafana", "79": "Bitbucket", "80": "Unity", "81": "Unreal Engine",
+    "82": "OpenGL", "83": "DirectX", "84": "Havok", "85": "Bullet", "86": "Multiplayer game networking",
+    "87": "APIs", "88": "Windows", "89": "Linux", "90": "MacOS", "91": "TCP/IP", "92": "PC assembly",
+    "93": "Peripheral troubleshooting", "94": "OS issues", "95": "Application errors", "96": "TeamViewer",
+    "97": "Remote Desktop"
+}
+def prepare_data():
+    # Create DataFrame
+    data = {
+        'current_skills': [
+            [1, 2, 3, 4, 6, 7, 11, 14, 16],  # Full Stack Software Development
+            [19, 20, 21, 22, 23, 24, 25, 27, 28],  # Data Science
+            [32, 35, 36, 37, 38, 39, 40, 42, 43],  # Machine Learning Engineering
+            [4, 8, 9, 10, 12, 15, 17, 18, 19],  # Web Development
+            [2, 6, 7, 11, 13, 20, 22, 23, 29],  # Cloud Computing
+            [16, 18, 20, 25, 28, 30, 31, 32, 33],  # Artificial Intelligence
+            [3, 5, 9, 10, 12, 14, 17, 21, 23],  # Cybersecurity
+            [8, 13, 15, 18, 24, 26, 27, 30, 35],  # DevOps Engineering
+            [9, 11, 16, 19, 21, 25, 28, 34, 36],  # Software Engineering
+            [10, 12, 14, 17, 22, 24, 26, 29, 31],  # Data Engineering
+        ],
+        'aptitude_score': [90, 85, 95, 80, 88, 92, 87, 83, 89, 91],  # Example aptitude scores
+        'math_marks': [99, 92, 95, 85, 88, 91, 90, 87, 89, 94],      # Example math marks
+        'science_marks': [100, 95, 98, 88, 90, 93, 89, 85, 92, 96],  # Example science marks
+        'interests_goals': [1, 2, 3, 1, 2, 3, 1, 2, 3, 1],  # Example interests/goals
         'domain': [
-            'Full Stack Software Development', 'App Development', 'Data Science',
-            'Machine Learning', 'Cybersecurity', 'Robotics', 'Automotive Engineering',
-            'Thermodynamics', 'Structural Analysis', 'Geotechnical Engineering'
+            'Full Stack Software Development',
+            'Data Science',
+            'Machine Learning Engineering',
+            'Web Development',
+            'Cloud Computing',
+            'Artificial Intelligence',
+            'Cybersecurity',
+            'DevOps Engineering',
+            'Software Engineering',
+            'Data Engineering',
         ]
-    })
+    }
     
-    X = df[['current_skills', 'aptitude_score', 'math_marks', 'science_marks', 'interests_goals']]
-    y = df['domain']
+    df = pd.DataFrame(data)
     
-    # Encode labels
+    # Convert domains to numeric labels
     le = LabelEncoder()
-    y_encoded = le.fit_transform(y)
+    df['domain_encoded'] = le.fit_transform(df['domain'])
     
-    return X, y_encoded, le
+    # Binarize the skills column
+    mlb = MultiLabelBinarizer()
+    skills_binarized = mlb.fit_transform(df['current_skills'])
+    
+    # Combine all features (skills and additional data)
+    X = np.hstack([
+        skills_binarized,
+        df[['aptitude_score', 'math_marks', 'science_marks', 'interests_goals']].values
+    ])
+    
+    y = df['domain_encoded']
+    
+    return X, y, le, mlb
 
-# Neural Network Model
-def build_nn_model(input_dim, num_categories):
+
+# Build and train neural network model
+def build_nn_model(input_dim, num_classes):
     model = Sequential()
     model.add(Dense(64, activation='relu', input_shape=(input_dim,)))
     model.add(Dropout(0.5))
     model.add(Dense(32, activation='relu'))
     model.add(Dropout(0.5))
     model.add(Dense(16, activation='relu'))
-    model.add(Dense(num_categories, activation='softmax'))
+    model.add(Dense(num_classes, activation='softmax'))
     model.compile(optimizer=Adam(learning_rate=0.001), loss='sparse_categorical_crossentropy', metrics=['accuracy'])
     return model
 
-# Gradient Boosting Model
-def build_gbm_model():
-    return GradientBoostingClassifier(n_estimators=100, learning_rate=0.1, max_depth=3, random_state=42)
 
-# Train and Evaluate Models
-def train_evaluate_models(X, y, label_encoder):
-    # Scale features
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
+# Main function to train the model
+def train_model():
+    X, y, label_encoder, mlb = prepare_data()
     
-    # Determine number of unique classes
     num_classes = len(label_encoder.classes_)
-    print(f"Total number of unique classes: {num_classes}")
-
-    # Check class distribution
-    from collections import Counter
-    print("Class distribution:", Counter(y))
-
-    # Define and train the Neural Network model
-    nn_model = build_nn_model(X_scaled.shape[1], num_classes)
-    nn_model.fit(X_scaled, y, epochs=20, batch_size=2, verbose=1, validation_split=0.2)
-
-    # Get NN predictions to use as features for GBM
-    nn_predictions = nn_model.predict(X_scaled)
-    nn_predictions_class = np.argmax(nn_predictions, axis=1)  # Convert to class labels
     
-    # Define and train the Gradient Boosting model
-    gbm_model = build_gbm_model()
-    gbm_model.fit(nn_predictions_class.reshape(-1, 1), y)  # Train GBM with NN predictions
+    model = build_nn_model(X.shape[1], num_classes)
+    model.fit(X, y, epochs=20, batch_size=2, verbose=1, validation_split=0.2)
     
-    # Save the models and scaler
-    nn_model.save('model.h5')
-    joblib.dump(gbm_model, 'gbm_model.pkl')
-    joblib.dump(scaler, 'scaler.pkl')
+    model.save('model.h5')
     joblib.dump(label_encoder, 'label_encoder.pkl')
-    print("Models, scaler, and label encoder saved.")
+    joblib.dump(mlb, 'mlb.pkl')
+    print("Model and label encoder saved.")
 
-    return nn_model, gbm_model, scaler
 
-# Load saved models
+# Load and predict using the model
+def predict_recommendation(user_skills, model, label_encoder, mlb):
+    user_skills_binarized = mlb.transform([user_skills])
+    
+    nn_predictions = model.predict(user_skills_binarized)
+    nn_prediction_class = np.argmax(nn_predictions, axis=1)
+    
+    recommended_domain = label_encoder.inverse_transform([nn_prediction_class[0]])[0]
+    return recommended_domain
+
+# Training the model (Run once to train and save the model)
+train_model()
+
 def load_models():
-    nn_model = load_model('model.h5')
-    gbm_model = joblib.load('gbm_model.pkl')
-    scaler = joblib.load('scaler.pkl')
+    model = tf.keras.models.load_model('model.h5')
     label_encoder = joblib.load('label_encoder.pkl')
-    return nn_model, gbm_model, scaler, label_encoder
-
-# Check if models exist, if not train and save them
-def ensure_models_exist(X, y, label_encoder):
-    try:
-        # Attempt to load models
-        nn_model, gbm_model, scaler, le = load_models()
-        print("Loaded existing models and scaler.")
-    except FileNotFoundError:
-        # If models do not exist, train and save them
-        print("Models not found. Training new models...")
-        nn_model, gbm_model, scaler = train_evaluate_models(X, y, label_encoder)
-        le = label_encoder
-    return nn_model, gbm_model, scaler, le
-
-# Predict and Recommend Domains using Neural Network Output for GBM
-def predict_recommendation(defaultValues, nn_model, gbm_model, scaler, label_encoder):
-    # Convert the defaultValues to a DataFrame format
-    user_data = {
-        'current_skills': np.mean([int(skill) for skill in defaultValues['currentSkills']]),  # Average the skills if multiple are provided
-        'aptitude_score': int(defaultValues['aptitudeScore']),
-        'math_marks': int(defaultValues['mathMarks']),
-        'science_marks': int(defaultValues['scienceMarks']),
-        'interests_goals': int(defaultValues['interestsGoals'])
-    }
+    mlb = joblib.load('mlb.pkl')
+    return model, label_encoder, mlb
+def preprocess_user_input(currentSkills, aptitudeScore, mathMarks, scienceMarks, interestsGoals):
+    # Convert string IDs to integers for skills
+    currentSkills = [int(skill_id) for skill_id in currentSkills]
     
-    user_data_df = pd.DataFrame([user_data])
-    user_data_scaled = scaler.transform(user_data_df)
+    # Convert other inputs to numeric values
+    aptitudeScore = int(aptitudeScore)
+    mathMarks = int(mathMarks)
+    scienceMarks = int(scienceMarks)
+    interestsGoals = int(interestsGoals)
     
-    nn_predictions = nn_model.predict(user_data_scaled)
-    nn_prediction_class = np.argmax(nn_predictions, axis=1)  # Convert to class label
-    
-    # Use NN prediction as input for GBM
-    gbm_prediction = gbm_model.predict(nn_prediction_class.reshape(-1, 1))
-    gbm_domain_index = gbm_prediction[0]
-    
-    gbm_domain = label_encoder.inverse_transform([gbm_domain_index])[0]
-    
-    print(f"Recommended Domain (Gradient Boosting): {gbm_domain}")
-    return gbm_domain
+    return currentSkills, aptitudeScore, mathMarks, scienceMarks, interestsGoals
+def predict_recommendation(user_skills, aptitude_score, math_marks, science_marks, interests_goals, model, label_encoder, mlb):
+    # Preprocess user input in the same way as the training data
+    skills_binarized = mlb.transform([user_skills])
+    user_input = np.hstack([
+        skills_binarized,
+        np.array([[aptitude_score, math_marks, science_marks, interests_goals]])
+    ])
 
-# Main Execution (Existing function)
-X, y, label_encoder = load_and_prepare_data()
-nn_model, gbm_model, scaler, le = ensure_models_exist(X, y, label_encoder)
+    # Ensure the input shape matches the model's expected input shape
+    print(f"Model expects input shape: {model.input_shape}")
+    print(f"User input shape: {user_input.shape}")
 
-# Example Usage with the React defaultValues
-defaultValues = {
-    'currentSkills': ['9', '6', '7'],
-    'aptitudeScore': '9',
-    'mathMarks': '90',
-    'scienceMarks': '100',
-    'interestsGoals': '2',
-}
+    # Make a prediction
+    nn_predictions = model.predict(user_input)
+    predicted_domain_idx = np.argmax(nn_predictions, axis=1)
+    predicted_domain = label_encoder.inverse_transform(predicted_domain_idx)
 
-# Call the prediction function with the defaultValues
-recommended_domain = predict_recommendation(defaultValues, nn_model, gbm_model, scaler, le)
+    return predicted_domain[0]
+
+# Load the model and other components
+model, label_encoder, mlb = load_models()
+
+# Example call to predict_recommendation
+user_skills = [1, 2, 3, 4, 6]
+aptitude_score = 90
+math_marks = 99
+science_marks = 100
+interests_goals = 1
+
+recommended_domain = predict_recommendation(user_skills, aptitude_score, math_marks, science_marks, interests_goals, model, label_encoder, mlb)
+print(f"Recommended Domain: {recommended_domain}")
+
+
+
