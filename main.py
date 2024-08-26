@@ -1,32 +1,63 @@
-from flask import Flask, request, jsonify
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 import numpy as np
 import pandas as pd
-from keras.models import load_model
+import tensorflow as tf
 import joblib
+from keras.models import load_model
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.ensemble import GradientBoostingClassifier
 
-app = Flask(__name__)
+# Set seeds for reproducibility
+np.random.seed(42)
+tf.random.set_seed(42)
 
-# Load models
-nn_model = load_model('model.h5')
-gbm_model = joblib.load('gbm_model.pkl')
-scaler = joblib.load('scaler.pkl')
-label_encoder = joblib.load('label_encoder.pkl')
+# Initialize FastAPI app
+app = FastAPI()
 
-@app.route('/predict', methods=['POST'])
-def predict():
-    data = request.json
-    user_data = [data['current_skills'], data['aptitude_score'], data['math_marks'], data['science_marks'], data['interests_goals']]
-    user_data_df = pd.DataFrame([user_data], columns=['current_skills', 'aptitude_score', 'math_marks', 'science_marks', 'interests_goals'])
+# Define input data schema
+class InputData(BaseModel):
+    currentSkills: list[int]
+    aptitudeScore: int
+    mathMarks: int
+    scienceMarks: int
+    interestsGoals: int
+
+# Load models and scaler
+def load_models():
+    nn_model = load_model('model.h5')
+    gbm_model = joblib.load('gbm_model.pkl')
+    scaler = joblib.load('scaler.pkl')
+    label_encoder = joblib.load('label_encoder.pkl')
+    return nn_model, gbm_model, scaler, label_encoder
+
+# Load models on startup
+nn_model, gbm_model, scaler, label_encoder = load_models()
+
+# Prediction endpoint
+@app.post("/predict")
+def predict(input_data: InputData):
+    # Convert input data to DataFrame format
+    user_data = {
+        'current_skills': np.mean(input_data.currentSkills),  # Average the skills if multiple are provided
+        'aptitude_score': input_data.aptitudeScore,
+        'math_marks': input_data.mathMarks,
+        'science_marks': input_data.scienceMarks,
+        'interests_goals': input_data.interestsGoals
+    }
+    
+    user_data_df = pd.DataFrame([user_data])
     user_data_scaled = scaler.transform(user_data_df)
     
+    # Predict using the neural network
     nn_predictions = nn_model.predict(user_data_scaled)
-    nn_prediction_class = np.argmax(nn_predictions, axis=1)
+    nn_prediction_class = np.argmax(nn_predictions, axis=1)  # Convert to class label
     
+    # Use NN prediction as input for Gradient Boosting model
     gbm_prediction = gbm_model.predict(nn_prediction_class.reshape(-1, 1))
     gbm_domain_index = gbm_prediction[0]
+    
+    # Map index back to domain
     gbm_domain = label_encoder.inverse_transform([gbm_domain_index])[0]
     
-    return jsonify({'recommended_domain': gbm_domain})
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080)
+    return {"recommended_domain": gbm_domain}
