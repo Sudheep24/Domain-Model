@@ -143,7 +143,7 @@ nn_model, gbm_model, scaler, le = ensure_models_exist(X, y, label_encoder)
 defaultValues = {
     'currentSkills': ['9', '6', '7'],
     'aptitudeScore': '9',
-    'mathMarks': '70',
+    'mathMarks': '90',
     'scienceMarks': '100',
     'interestsGoals': '2',
 }
