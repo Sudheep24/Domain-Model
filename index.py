@@ -154,8 +154,8 @@ def preprocess_user_input(currentSkills, aptitudeScore, mathMarks, scienceMarks,
     interestsGoals = int(interestsGoals)
     
     return currentSkills, aptitudeScore, mathMarks, scienceMarks, interestsGoals
-def predict_recommendation(user_skills, aptitude_score, math_marks, science_marks, interests_goals, model, label_encoder, mlb):
-    # Preprocess user input in the same way as the training data
+def predict_recommendation(user_skills: list[int], aptitude_score: int, math_marks: int, science_marks: int, interests_goals: int, model, label_encoder, mlb):
+    # Preprocess user input
     skills_binarized = mlb.transform([user_skills])
     user_input = np.hstack([
         skills_binarized,
@@ -163,8 +163,8 @@ def predict_recommendation(user_skills, aptitude_score, math_marks, science_mark
     ])
 
     # Ensure the input shape matches the model's expected input shape
-    print(f"Model expects input shape: {model.input_shape}")
-    print(f"User input shape: {user_input.shape}")
+    if user_input.shape[1] != model.input_shape[1]:
+        raise ValueError(f"Input shape mismatch: Expected {model.input_shape[1]}, but got {user_input.shape[1]}")
 
     # Make a prediction
     nn_predictions = model.predict(user_input)
@@ -172,19 +172,3 @@ def predict_recommendation(user_skills, aptitude_score, math_marks, science_mark
     predicted_domain = label_encoder.inverse_transform(predicted_domain_idx)
 
     return predicted_domain[0]
-
-# Load the model and other components
-model, label_encoder, mlb = load_models()
-
-# Example call to predict_recommendation
-user_skills = [1, 2, 3, 4, 6]
-aptitude_score = 90
-math_marks = 99
-science_marks = 100
-interests_goals = 1
-
-recommended_domain = predict_recommendation(user_skills, aptitude_score, math_marks, science_marks, interests_goals, model, label_encoder, mlb)
-print(f"Recommended Domain: {recommended_domain}")
-
-
-
