@@ -103,16 +103,16 @@ domainskills = {
     "97": "Remote Desktop"
 }
 domain_skills = {
-    "Full Stack Software Development": [1, 2, 3, 4, 6, 7, 11, 14, 16],
-    "Data Science": [19, 20, 21, 22, 23, 24, 25, 27, 28],
-    "Machine Learning Engineering": [32, 35, 36, 37, 38, 39, 40, 42, 43],
-    "Cybersecurity": [45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56],
-    "Software Engineering": [57, 58, 59, 60, 62, 63, 65, 68, 69],
-    "Cloud Engineering": [70, 71, 72, 73, 75, 77, 79, 82, 84],
-    "Web Development": [85, 86, 87, 88, 89, 91, 92, 94, 96],
-    "DevOps": [98, 99, 101, 102, 103, 105, 106, 107, 108],
-    "Game Development": [110, 111, 112, 113, 114, 116, 118],
-    "IT Support": [120, 121, 123, 126, 128, 130, 131]
+  "Full Stack Software Development": [1, 2, 3, 4, 6, 7, 11, 14, 16],
+  "Data Science": [8, 19, 20, 21, 22, 23, 24, 25, 26],
+  "Machine Learning Engineering": [8, 20, 21, 22, 23, 24, 30, 32, 33, 34],
+  "Cybersecurity": [35, 36, 37, 38, 39, 40, 41, 42, 43],
+  "Software Engineering": [1, 3, 10, 47, 48, 49, 50, 51, 53],
+  "Cloud Engineering": [16, 17, 18, 56, 57, 58, 62, 63, 65],
+  "Web Development": [1, 2, 3, 4, 5, 14, 70, 71, 72],
+  "DevOps": [16, 18, 56, 57, 58, 73, 74, 75, 76],
+  "Game Development": [47, 80, 81, 82, 83, 84, 85, 86],
+  "IT Support": [88, 89, 90, 91, 92, 93, 94, 95, 96]
 }
 domain_difficulty_marks = {
     "Full Stack Software Development": (80, 100),
