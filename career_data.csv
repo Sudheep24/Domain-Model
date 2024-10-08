@@ -1,22 +1,15 @@
-aptitude_score,marks_10th,marks_12th,interest,skills,domain
-85,90,88,Mathematics,"1,2,3,4","Full Stack Software Development"
-75,80,78,Data Science,"19,20,21","Data Science"
-60,70,65,Machine Learning,"32,35,36","Machine Learning Engineering"
-92,95,93,Web Development,"1,3,4,6","Web Development"
-70,75,80,Cybersecurity,"45,46,47","Cybersecurity"
-68,72,74,Cloud Computing,"70,71,72","Cloud Engineering"
-88,85,90,Game Development,"110,111,112","Game Development"
-78,82,80,DevOps,"98,99,101","DevOps"
-54,60,62,IT Support,"120,121,123","IT Support"
-81,86,83,Data Analysis,"19,20,21,24","Data Science"
-67,72,75,Software Engineering,"57,58,59","Software Engineering"
-90,91,92,Machine Learning,"32,35,38","Machine Learning Engineering"
-83,87,85,Full Stack Development,"1,2,3,4,6","Full Stack Software Development"
-72,76,74,Data Visualization,"19,27,28","Data Science"
-77,78,80,Game Design,"110,113,114","Game Development"
-65,70,72,Cloud Infrastructure,"70,73,75","Cloud Engineering"
-89,88,91,Cyber Threats,"45,50,51","Cybersecurity"
-94,90,92,Networking,"98,99,105","DevOps"
-71,69,70,Web Design,"1,2,3,5","Web Development"
-76,78,79,Mobile Development,"4,6,7,8","Full Stack Software Development"
-59,60,62,Technical Support,"120,121,130","IT Support"
+aptitude_score,marks_10th,marks_12th,skills,interest,domain
+85,92,89,6,7,92,95,Full Stack Software Development
+75,88,90,5,1,94,93,Mechanical Engineering
+60,78,85,6,95,91,97,Civil Engineering
+82,89,91,7,92,90,94,Electrical Engineering
+73,85,80,4,2,7,93,Chemical Engineering
+88,94,92,8,19,20,22,Data Science
+70,82,88,8,20,21,24,Machine Learning Engineering
+76,90,85,35,37,38,40,Cybersecurity
+79,87,89,1,3,47,48,Software Engineering
+68,83,84,16,18,57,62,Cloud Engineering
+81,91,93,1,3,4,70,Web Development
+74,86,88,16,18,58,74,DevOps
+69,79,85,47,80,81,82,Game Development
+65,75,80,88,89,91,95,IT Support

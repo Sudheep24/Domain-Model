@@ -11,7 +11,8 @@ app = Flask(__name__)
 data = pd.read_csv('career_data.csv')  # Update with the correct path to your dataset
 
 # Data preprocessing
-data['skills'] = data['skills'].apply(lambda x: list(map(int, x.split(','))))
+# Convert the 'skills' column to string and split it
+data['skills'] = data['skills'].apply(lambda x: list(map(int, str(x).split(','))) if isinstance(x, str) else [x])
 data['interest'] = data['interest'].astype('category')
 
 # One-hot encoding for the 'interest' column
@@ -38,29 +39,29 @@ def predict():
         user_data = request.json
 
         # Extract user inputs
-        skills = user_data['skills']
         aptitude_score = user_data['aptitude_score']
-        marks_10th = user_data['marks_10th']
-        marks_12th = user_data['marks_12th']
-        interest = user_data['interest']
+        current_skills = user_data['current_skills']
+        interests_goals = user_data['interests_goals']
+        math_marks = user_data['math_marks']
+        science_marks = user_data['science_marks']
 
         # Prepare input data
         input_data = pd.DataFrame([{
             'aptitude_score': aptitude_score,
-            'marks_10th': marks_10th,
-            'marks_12th': marks_12th
+            'marks_10th': math_marks,
+            'marks_12th': science_marks
         }])
 
-        # Create a binary representation for skills
-        skills_df = pd.DataFrame(0, index=input_data.index, columns=range(1, 100))  # Assuming skills are 1-99
-        for skill in skills:
+        # Create a binary representation for current skills
+        skills_df = pd.DataFrame(0, index=input_data.index, columns=range(1, 100))  # Assuming skills range from 1 to 99
+        for skill in current_skills:
             skills_df.at[0, skill] = 1  # Marking skills present
 
         # Combine input data with skills
         input_data_encoded = pd.concat([input_data, skills_df], axis=1)
 
-        # One-hot encoding for the 'interest' column
-        interest_encoded = pd.get_dummies(pd.DataFrame({'interest': [interest]}), drop_first=True)
+        # One-hot encoding for the 'interests_goals' column
+        interest_encoded = pd.get_dummies(pd.DataFrame({'interest': [interests_goals]}), drop_first=True)
         input_data_encoded = pd.concat([input_data_encoded, interest_encoded], axis=1)
 
         # Align the input data with the training data
